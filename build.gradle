@@ -32,8 +32,32 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
+
+    //테스트 코드에서 @Slf4J
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+
+
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+test {
+    testLogging {
+        // event
+        events = ["STARTED", "PASSED", "SKIPPED", "FAILED"]
+        // 필요시 gradle에 `--info`, `--debug` 사용하자
+//        showStandardStreams = true
+        // stacktrace 더 상세하기 보기 좋게
+        showStackTraces= true
+        exceptionFormat='FULL'
+    }
+}
+
+// 최하단 쪽에 넣어야 오류가 발생되지 않는다고 한다
+bootRun {
+    String activeProfile = System.properties['spring.profiles.active']
+    systemProperty "spring.profiles.active", activeProfile
 }

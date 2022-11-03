@@ -1,0 +1,4 @@
+# 프로파일 옵션 없을시 local
+spring:
+  profiles:
+    active: local

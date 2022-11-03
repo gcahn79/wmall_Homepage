@@ -1,0 +1,41 @@
+name: Homepage Build
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@master
+
+      - name: java setup
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'     # Caching gradle dependencies
+
+      - name : build
+        run: ./gradlew build --no-daemon
+
+      ###########
+      # 배포 필요 #
+      ###########
+
+      - name: Notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          author_name: GeunChang TestBeckend - dev
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
+        #          mention: here
+        #          if_mention: failure, cancelled
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

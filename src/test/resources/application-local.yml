@@ -1,0 +1,35 @@
+# localTest 전용
+spring:
+  config:
+    activate:
+      on-profile: local
+  h2:
+    console:
+      enabled: true
+  datasource:
+    hikari:
+      driver-class-name: org.h2.Driver
+      jdbc-url: jdbc:h2:mem:wmalldb;MODE=MySQL; #h2에서 mysql 먹도록
+      username: sa
+      password:
+      maximum-pool-size: 10
+
+  jpa:
+    database: h2
+    generate-ddl: true
+    properties:
+      hibernate:
+        show_sql: false           # Logger 출력을 위해 기본 stdout 설정은 false
+        format_sql: true          # sql 출력 포매팅
+        use_sql_comments: true    # 디버깅에 활용할 추가적인 정보 출력
+    hibernate:
+      ddl-auto: create
+# 로거로 찍기
+logging:
+  level:
+    root: info
+    com.zaxxer.hikari.pool.HikariPool: debug    # Hikari 패키지
+    kr.co.wmall.wmall_homepage: debug
+    org.hibernate.SQL: debug                    # SQL 로거에 출력
+    # 쿼리 파라미터 찍기
+    org.hibernate.type: trace
