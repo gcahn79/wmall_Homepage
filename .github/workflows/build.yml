@@ -1,4 +1,4 @@
-name: Homepage Build
+name: w몰 홈페이지 자동화
 on:
   push:
     branches:
@@ -11,31 +11,78 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
+      - name: 소스코드 체크아웃
         uses: actions/checkout@master
 
-      - name: java setup
+      - name: jdk셋업-temurin17-gradle
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'     # Caching gradle dependencies
 
-      - name : build
+      - name: 그래들 빌드
         run: ./gradlew build --no-daemon
 
-      ###########
-      # 배포 필요 #
-      ###########
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v2
 
-      - name: Notification
+      - name: Set up Docker BuildX
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Cache Docker layers
+        uses: actions/cache@v2
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+
+      - name: Login to Dockerhub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Inspect builder
+        run: |
+          echo "Name:           ${{ steps.buildx.outputs.name }}"
+          echo "Endpoint:       ${{ steps.buildx.outputs.endpoint }}"
+          echo "Status:         ${{ steps.buildx.outputs.status }}"
+          echo "Flags:          ${{ steps.buildx.outputs.flags }}"
+          echo "Platforms:      ${{ steps.buildx.outputs.platforms }}"
+
+      - name: 이미지 빌드
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: gcahn79/wmall_homepage:latest, gcahn79/wmall_homepage:${{ secrets.APP_VERSION }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new
+          build-args: |
+            "APP_VERSION=${{ secrets.APP_VERSION }}"
+            "PROFILE=${{ secrets.PROFILE }}"
+
+      - name: 이미지 확인
+        run: docker images "gcahn79/*"
+
+      - name: 캐시 이동
+        run: |
+            rm -rf /tmp/.buildx-cache
+            mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Slack 알림
         uses: 8398a7/action-slack@v3
         with:
           status: ${{ job.status }}
-          author_name: GeunChang TestBeckend - dev
+          author_name: Ahn
           fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest # selectable (default: repo,message)
-        #          mention: here
-        #          if_mention: failure, cancelled
+          mention: here
+          if_mention: failure, cancelled
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
