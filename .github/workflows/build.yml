@@ -11,6 +11,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+
+      - name: Get timestamp
+        uses: gerred/actions/current-time@master
+        id: current-time
+
+      - name: Run string replace
+        uses: frabert/replace-string-action@master
+        id: format-time
+        with:
+          pattern: '[:\.]+'
+          string: "${{ steps.current-time.outputs.time }}"
+          replace-with: '-'
+          flags: 'g'
+
       - name: 소스코드 체크아웃
         uses: actions/checkout@master
 
@@ -64,16 +78,27 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
           build-args: |
-            "APP_VERSION=${{ secrets.APP_VERSION }}"
-            "PROFILE=${{ secrets.PROFILE }}"
+            "APP_VERSION=${{ steps.format-time.outputs.replaced }}"
+#            "PROFILE=${{ secrets.PROFILE }}"
 
-      - name: 이미지 확인
-        run: docker images "gcahn79/*"
-
-      - name: 캐시 이동
+      - name: buildx 캐시 이동
         run: |
-            rm -rf /tmp/.buildx-cache
-            mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      # Beanstalk 플러그인을 사용
+      # 미리 생성해둔 IAM 인증키를 사용
+      - name: Beanstalk Deploy
+        uses: einaregilsson/beanstalk-deploy@v20
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: wmall-homepage-dev
+          environment_name: wmall-homepage-dev-env
+          version_label: "github-action--${{ steps.format-time.outputs.replaced }}"
+          region: ap-northeast-2
+          deployment_package: Dockerrun.aws.json
+
 
       - name: Slack 알림
         uses: 8398a7/action-slack@v3

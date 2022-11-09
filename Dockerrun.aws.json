@@ -1,0 +1,15 @@
+{
+  "AWSEBDockerrunVersion": "1",
+  "Image": {
+    "Name": "gcahn79/wmall_homepage:latest",
+    "Update": "true"
+  },
+  "Ports": [
+    {
+      "hostPort": "5000",
+      "ContainerPort": "8080"
+    }
+  ],
+  "Logging": "/var/log/nginx"
+}
+
